@@ -22,6 +22,8 @@ export const usage = `
 - xlist - 查看订阅列表
 
 在哪里使用 watch 命令，推文的更新就会发送到哪里
+
+如果已有科学上网环境，但使用watch命令时总是“获取推特用户名失败”，大概是 nodejs 版本过低，请使用 nodejs21 及以上版本
 `;
 
 export const inject = { required: ["database"] };
