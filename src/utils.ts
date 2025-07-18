@@ -1,4 +1,4 @@
-import { getRettiwt } from "./api-client";
+import { getRettiwt, validateApiKey, resetRettiwt } from "./api-client";
 import { logger } from "./logger";
 
 /**
@@ -11,15 +11,80 @@ export async function getTwitterUserInfo(
   twitter_username: string,
   auth_key: string
 ): Promise<{ fullname: string; id: string; username: string }> {
-  try {
-    const rettiwt = getRettiwt(auth_key);
-    const user = await rettiwt.user.details(twitter_username);
-    return { fullname: user.fullName, id: user.id, username: user.userName };
-  } catch (error) {
-    throw new Error(
-      `获取推特用户名失败，请检查推特用户id是否正确，你只需要输入推特用户id，不需要输入@`
-    );
+  let retryCount = 0;
+  const maxRetries = 2;
+
+  while (retryCount <= maxRetries) {
+    try {
+      const rettiwt = getRettiwt(auth_key);
+      const user = await rettiwt.user.details(twitter_username);
+      return { fullname: user.fullName, id: user.id, username: user.userName };
+    } catch (error) {
+      logger.error(
+        `获取推特用户信息失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`,
+        error
+      );
+
+      // 检查是否是API密钥问题
+      if (
+        error.message &&
+        (error.message.includes("401") ||
+          error.message.includes("Unauthorized") ||
+          error.message.includes("Invalid API key"))
+      ) {
+        if (retryCount === 0) {
+          logger.info("检测到可能的API密钥问题，重置客户端实例");
+          resetRettiwt();
+          retryCount++;
+          continue;
+        } else {
+          throw new Error(
+            `API密钥无效或已过期，请检查配置中的auth_key是否正确`
+          );
+        }
+      }
+
+      // 检查是否是用户不存在
+      if (
+        error.message &&
+        (error.message.includes("404") ||
+          error.message.includes("Not Found") ||
+          error.message.includes("User not found"))
+      ) {
+        throw new Error(
+          `推特用户 "${twitter_username}" 不存在，请检查用户名是否正确（不需要包含@符号）`
+        );
+      }
+
+      // 检查是否是网络问题
+      if (
+        error.message &&
+        (error.message.includes("ENOTFOUND") ||
+          error.message.includes("ECONNREFUSED") ||
+          error.message.includes("timeout"))
+      ) {
+        if (retryCount < maxRetries) {
+          logger.info(`网络连接问题，${2}秒后重试...`);
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          retryCount++;
+          continue;
+        } else {
+          throw new Error(`网络连接失败，请检查服务器网络连接或稍后重试`);
+        }
+      }
+
+      // 其他未知错误
+      if (retryCount < maxRetries) {
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      } else {
+        throw new Error(`获取推特用户信息失败: ${error.message || "未知错误"}`);
+      }
+    }
   }
+
+  throw new Error(`获取推特用户信息失败，已达到最大重试次数`);
 }
 
 /**
@@ -32,23 +97,76 @@ export async function getLatestTweetId(
   twitter_id: string,
   auth_key: string
 ): Promise<string | null> {
-  try {
-    const rettiwt = getRettiwt(auth_key);
-    const tweets = await rettiwt.user.timeline(twitter_id, 1);
+  let retryCount = 0;
+  const maxRetries = 2;
 
-    if (!tweets || !tweets.list || tweets.list.length === 0) {
-      logger.debug(`用户 ${twitter_id} 没有推文`);
+  while (retryCount <= maxRetries) {
+    try {
+      const rettiwt = getRettiwt(auth_key);
+      const tweets = await rettiwt.user.timeline(twitter_id, 1);
+
+      if (!tweets || !tweets.list || tweets.list.length === 0) {
+        logger.debug(`用户 ${twitter_id} 没有推文`);
+        return null;
+      }
+
+      const latestTweet = tweets.list[0];
+      logger.debug(`获取到用户 ${twitter_id} 的最新推文ID: ${latestTweet.id}`);
+      return latestTweet.id;
+    } catch (error) {
+      logger.error(
+        `获取用户 ${twitter_id} 最新推文ID失败 (尝试 ${retryCount + 1}/${
+          maxRetries + 1
+        }):`,
+        error
+      );
+
+      // 检查是否是API密钥问题
+      if (
+        error.message &&
+        (error.message.includes("401") ||
+          error.message.includes("Unauthorized"))
+      ) {
+        if (retryCount === 0) {
+          logger.info("检测到API密钥问题，重置客户端实例");
+          resetRettiwt();
+          retryCount++;
+          continue;
+        } else {
+          logger.error("API密钥问题，无法获取推文");
+          return null;
+        }
+      }
+
+      // 网络问题重试
+      if (
+        error.message &&
+        (error.message.includes("ENOTFOUND") ||
+          error.message.includes("ECONNREFUSED") ||
+          error.message.includes("timeout"))
+      ) {
+        if (retryCount < maxRetries) {
+          logger.info(`网络连接问题，${2}秒后重试...`);
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          retryCount++;
+          continue;
+        }
+      }
+
+      // 其他错误
+      if (retryCount < maxRetries) {
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+
+      // 不抛出错误，返回null，让订阅继续进行
+      logger.warn(`最终获取用户 ${twitter_id} 最新推文ID失败，返回null`);
       return null;
     }
-
-    const latestTweet = tweets.list[0];
-    logger.debug(`获取到用户 ${twitter_id} 的最新推文ID: ${latestTweet.id}`);
-    return latestTweet.id;
-  } catch (error) {
-    logger.error(`获取用户 ${twitter_id} 最新推文ID失败:`, error);
-    // 不抛出错误，返回null，让订阅继续进行
-    return null;
   }
+
+  return null;
 }
 
 /**

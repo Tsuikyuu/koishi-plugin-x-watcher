@@ -1,5 +1,5 @@
 import { Context } from "koishi";
-import { getRettiwt } from "./api-client";
+import { getRettiwt, resetRettiwt } from "./api-client";
 import { formatTweetMessage } from "./message-formatter";
 import { WatcherRecord } from "./database-schema";
 import { logger } from "./logger";
@@ -71,10 +71,32 @@ export async function checkTweetUpdates(
         }
       } catch (userError) {
         logger.error(`检查用户 ${twitter_id} 推文时出错:`, userError);
-        // 如果是API限制错误，可以考虑暂停一段时间
+
+        // 检查是否是API密钥问题
+        if (
+          userError.message &&
+          (userError.message.includes("401") ||
+            userError.message.includes("Unauthorized"))
+        ) {
+          logger.warn("检测到API密钥问题，重置客户端实例");
+          resetRettiwt();
+        }
+
+        // 如果是API限制错误，暂停一段时间
         if (userError.message && userError.message.includes("rate limit")) {
           logger.warn("遇到API限制，暂停5分钟");
           await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
+        }
+
+        // 网络问题，短暂暂停
+        if (
+          userError.message &&
+          (userError.message.includes("ENOTFOUND") ||
+            userError.message.includes("ECONNREFUSED") ||
+            userError.message.includes("timeout"))
+        ) {
+          logger.warn("网络连接问题，暂停30秒");
+          await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
         }
       }
     }
