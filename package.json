@@ -9,6 +9,13 @@
     "dist"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tsuikyuu/koishi-plugin-x-watcher.git"
+  },
+  "contributors": [
+    "Tsuikyuu <bokusummer233@gmail.com>"
+  ],
   "keywords": [
     "chatbot",
     "koishi",
@@ -19,5 +26,12 @@
   },
   "dependencies": {
     "rettiwt-api": "^6.0.5"
+  },
+  "koishi": {
+    "service": {
+      "required": [
+        "database"
+      ]
+    }
   }
 }
