@@ -3,6 +3,7 @@ import { initializeDatabase } from "./database-schema";
 import { registerCommands } from "./commands";
 import { checkTweetUpdates } from "./tweet-checker";
 import { logger } from "./logger";
+import { validateApiKey } from "./api-client";
 
 export const name = "x-watcher";
 
@@ -49,6 +50,21 @@ export function apply(ctx: Context, config: Config) {
     logger.error("数据库初始化失败", error);
     return;
   }
+
+  // 验证API密钥
+  ctx.on("ready", async () => {
+    try {
+      const isValid = await validateApiKey(config.auth_key);
+      if (!isValid) {
+        logger.error("API密钥验证失败，请检查配置中的auth_key是否正确");
+        logger.error("插件可能无法正常工作，请更新API密钥后重启");
+      } else {
+        logger.info("API密钥验证成功");
+      }
+    } catch (error) {
+      logger.warn("API密钥验证过程中出现错误:", error);
+    }
+  });
 
   // 注册命令
   registerCommands(ctx, config);
