@@ -1,6 +1,6 @@
 import { MediaType, Tweet, TweetMedia } from "rettiwt-api";
 import { formatTweetTime } from "./utils";
-import Element from "@satorijs/element/jsx-runtime";
+import Element from "@satorijs/element";
 
 /**
  * 推文消息格式化选项
