@@ -2,8 +2,6 @@ import { Context, Logger, Schema } from "koishi";
 import { initializeDatabase } from "./database-schema";
 import { registerCommands } from "./commands";
 import { checkTweetUpdates } from "./tweet-checker";
-import { getRettiwt } from "./api-client";
-import { getLatestTweetId, getTwitterUserInfo } from "./utils";
 
 export const name = "x-watcher";
 
@@ -25,6 +23,8 @@ export const usage = `
 在哪里使用 watch 命令，推文的更新就会发送到哪里
 
 如果已有科学上网环境，但使用watch命令时总是“获取推特用户名失败”，大概是 nodejs 版本过低，请使用 nodejs21 及以上版本
+
+更多信息请前往存储库或npm阅读自述文件
 `;
 
 export const inject = { required: ["database"] };

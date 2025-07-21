@@ -30,8 +30,9 @@ export function registerCommands(ctx: Context, config: CommandConfig): void {
 function registerWatchCommand(ctx: Context, config: CommandConfig): void {
   ctx
     .command("x-watcher.watch <twitter_username> [regexp:text]", "订阅博主推文")
+    .option("media", "-m", { fallback: false })
     .alias("watch")
-    .action(async ({ session }, twitter_username, regexp) => {
+    .action(async ({ session, options }, twitter_username, regexp) => {
       try {
         // 参数验证
         if (!twitter_username || !twitter_username.trim()) {
@@ -101,6 +102,7 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
               twitter_fullname: twitter_info.fullname,
               last_tweet_id: latestTweetId,
               filter_regexp: filterRegexp,
+              media: options.media || false,
               active: true,
               create_at: new Date(),
               update_at: new Date(),
@@ -109,8 +111,9 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
             const filterInfo = filterRegexp
               ? `\n过滤条件: ${filterRegexp}`
               : "";
+            const mediaInfo = options.media ? "\n媒体: 包含" : "\n媒体: 不含";
             session.send(
-              `已添加 ${twitter_info.fullname} 的推文订阅，将在 ${twitter_info.fullname} 发布推文后的${config.interval}分钟内转发到此处${filterInfo}`
+              `已添加 ${twitter_info.fullname} 的推文订阅，将在 ${twitter_info.fullname} 发布推文后的${config.interval}分钟内转发到此处${filterInfo}${mediaInfo}`
             );
             return;
           } else if (!watchers[0].active) {
@@ -144,6 +147,7 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
                 twitter_fullname: twitter_info.fullname,
                 last_tweet_id: latestTweetId,
                 filter_regexp: filterRegexp,
+                media: options.media || false,
                 active: true,
                 update_at: new Date(),
               }
@@ -151,7 +155,10 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
             const filterInfo = filterRegexp
               ? `\n过滤条件: ${filterRegexp}`
               : "";
-            session.send(`已重新订阅 ${twitter_info.fullname}${filterInfo}`);
+            const mediaInfo = options.media ? "\n媒体: 包含" : "\n媒体: 不含";
+            session.send(
+              `已重新订阅 ${twitter_info.fullname}${filterInfo}${mediaInfo}`
+            );
             return;
           } else {
             // 已存在订阅且已激活，更新用户名
@@ -166,6 +173,7 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
                 twitter_username: twitter_info.username,
                 twitter_fullname: twitter_info.fullname,
                 filter_regexp: filterRegexp,
+                media: options.media || false,
                 active: true,
                 update_at: new Date(),
               }
@@ -173,7 +181,10 @@ function registerWatchCommand(ctx: Context, config: CommandConfig): void {
             const filterInfo = filterRegexp
               ? `\n过滤条件: ${filterRegexp}`
               : "";
-            session.send(`已更新订阅 ${twitter_info.fullname}${filterInfo}`);
+            const mediaInfo = options.media ? "\n媒体: 包含" : "\n媒体: 不含";
+            session.send(
+              `已更新订阅 ${twitter_info.fullname}${filterInfo}${mediaInfo}`
+            );
             return;
           }
         } catch (error) {

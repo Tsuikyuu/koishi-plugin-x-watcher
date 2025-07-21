@@ -15,6 +15,7 @@ export const X_WATCHER_FIELDS = {
   twitter_id: "string",
   last_tweet_id: "string",
   filter_regexp: "string", // 过滤推文内容的正则表达式（可为空）
+  media: "boolean", // 是否在推送更新时附带推文的media
   active: "boolean",
   create_at: "timestamp",
   update_at: "timestamp",
@@ -56,6 +57,7 @@ export interface WatcherRecord {
   twitter_id: string;
   last_tweet_id?: string;
   filter_regexp?: string | null; // 过滤推文内容的正则表达式（可为空）
+  media?: boolean; // 是否在推送更新时附带推文的media
   active: boolean;
   create_at?: Date;
   update_at?: Date;
@@ -79,6 +81,7 @@ interface XWatcher {
   twitter_id: string; // 监控的推特用户id
   last_tweet_id?: string; // 监控的推特用户最后一条推文id
   filter_regexp?: string | null; // 过滤推文内容的正则表达式（可为空）
+  media?: boolean; // 是否在推送更新时附带推文的media
   active: boolean; // 是否激活
   create_at: Date; // 创建时间
   update_at: Date; // 更新时间

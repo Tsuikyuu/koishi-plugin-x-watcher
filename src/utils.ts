@@ -1,8 +1,6 @@
 import { Tweet } from "rettiwt-api";
 import { getRettiwt } from "./api-client";
 import { logger } from ".";
-import * as https from "https";
-import * as http from "http";
 
 /**
  * 从 twitter_username 获取 twitter_fullname 和 twitter_id

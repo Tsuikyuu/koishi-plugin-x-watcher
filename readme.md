@@ -23,11 +23,12 @@
 **订阅推文**
 
 ```
-watch <twitter_username> [regexp]
+watch <twitter_username> [regexp] -m
 ```
 
 - `twitter_username`: 推特用户名（@后面的部分，不包含@符号）
 - `regexp`: 可选的正则表达式，用于过滤推文内容
+- `-m`：可选参数，表示订阅推文的媒体内容(目前仅支持图片，暂不支持视频，只兼容支持图文混排的平台)
 
 **取消订阅**
 

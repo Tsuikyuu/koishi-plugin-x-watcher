@@ -177,6 +177,7 @@ async function sendNewTweets(
         tweet,
         fullname: watcher.twitter_fullname,
         username: watcher.twitter_username,
+        includeMedia: watcher.media || false,
       });
 
       // 发送消息到对应的频道
