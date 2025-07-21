@@ -2,7 +2,8 @@ import { Context } from "koishi";
 import { getRettiwt } from "./api-client";
 import { formatTweetMessage } from "./message-formatter";
 import { WatcherRecord } from "./database-schema";
-import { logger } from "./logger";
+import { logger } from ".";
+import { Tweet } from "rettiwt-api";
 
 /**
  * 推文检查配置
@@ -53,8 +54,8 @@ export async function checkTweetUpdates(
           `检查用户 ${watchers[0].twitter_username} (${twitter_id}) 的推文更新`
         );
 
-        // 获取用户最新的推文（最多20条）
-        const tweets = await rettiwtInstance.user.timeline(twitter_id, 20);
+        // 获取用户最新的推文； timeline 的第二个参数疑似存在bug，暂时使用 1
+        const tweets = await rettiwtInstance.user.timeline(twitter_id, 1);
 
         if (!tweets || !tweets.list || tweets.list.length === 0) {
           logger.debug(`用户 ${watchers[0].twitter_username} 没有推文`);
@@ -71,11 +72,6 @@ export async function checkTweetUpdates(
         }
       } catch (userError) {
         logger.error(`检查用户 ${twitter_id} 推文时出错:`, userError);
-        // 如果是API限制错误，可以考虑暂停一段时间
-        if (userError.message && userError.message.includes("rate limit")) {
-          logger.warn("遇到API限制，暂停5分钟");
-          await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000));
-        }
       }
     }
 
@@ -149,8 +145,8 @@ async function processWatcherTweets(
 async function sendNewTweets(
   ctx: Context,
   watcher: WatcherRecord,
-  newTweets: any[],
-  allTweets: any[]
+  newTweets: Tweet[],
+  allTweets: Tweet[]
 ): Promise<void> {
   // 按推文ID排序，确保按时间顺序推送（从旧到新）
   // 因为Snowflake ID是递增的，所以ID小的推文更早

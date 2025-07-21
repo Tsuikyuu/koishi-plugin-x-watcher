@@ -1,7 +1,7 @@
 import { Context } from "koishi";
 import { getTwitterUserInfo, getLatestTweetId } from "./utils";
 import { formatWatcherListMessage } from "./message-formatter";
-import { logger } from "./logger";
+import { logger } from ".";
 
 /**
  * 命令配置

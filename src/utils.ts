@@ -1,5 +1,8 @@
+import { Tweet } from "rettiwt-api";
 import { getRettiwt } from "./api-client";
-import { logger } from "./logger";
+import { logger } from ".";
+import * as https from "https";
+import * as http from "http";
 
 /**
  * 从 twitter_username 获取 twitter_fullname 和 twitter_id
@@ -36,36 +39,33 @@ export async function getLatestTweetId(
     const rettiwt = getRettiwt(auth_key);
     const tweets = await rettiwt.user.timeline(twitter_id, 1);
 
-    if (!tweets || !tweets.list || tweets.list.length === 0) {
+    if (!tweets?.list?.length) {
       logger.debug(`用户 ${twitter_id} 没有推文`);
       return null;
     }
 
-    const latestTweet = tweets.list[0];
+    // 使用 Snowflake ID 找到最新推文（ID 越大表示时间越新）
+    const latestTweet = tweets.list.reduce((latest, current) => {
+      try {
+        return BigInt(current.id) > BigInt(latest.id) ? current : latest;
+      } catch (error) {
+        logger.warn(`比较推文ID失败: ${current.id}, ${latest.id}`, error);
+        // 如果ID比较失败，尝试时间比较作为后备方案
+        try {
+          const currentTime = new Date(current.createdAt);
+          const latestTime = new Date(latest.createdAt);
+          return currentTime > latestTime ? current : latest;
+        } catch (timeError) {
+          logger.warn(`时间比较也失败，保持原选择`, timeError);
+          return latest;
+        }
+      }
+    });
+
     logger.debug(`获取到用户 ${twitter_id} 的最新推文ID: ${latestTweet.id}`);
     return latestTweet.id;
   } catch (error) {
     logger.error(`获取用户 ${twitter_id} 最新推文ID失败:`, error);
-    // 不抛出错误，返回null，让订阅继续进行
-    return null;
-  }
-}
-
-/**
- * 从 Twitter Snowflake ID 中提取时间戳
- * @param snowflakeId Snowflake ID 字符串
- * @returns Date 对象，如果提取失败则返回 null
- */
-export function extractTimeFromSnowflake(snowflakeId: string): Date | null {
-  try {
-    // Twitter Snowflake ID 的时间戳部分
-    // Snowflake ID 的前 42 位是时间戳（毫秒，从 2010-11-04 01:42:54 UTC 开始）
-    const TWITTER_EPOCH = 1288834974657; // 2010-11-04 01:42:54 UTC
-    const id = BigInt(snowflakeId);
-    const timestamp = Number(id >> 22n) + TWITTER_EPOCH;
-    return new Date(timestamp);
-  } catch (error) {
-    logger.warn(`从 Snowflake ID 提取时间失败: ${snowflakeId}`, error);
     return null;
   }
 }
@@ -75,21 +75,9 @@ export function extractTimeFromSnowflake(snowflakeId: string): Date | null {
  * @param tweet 推文对象
  * @returns 格式化后的时间字符串，如果无法获取时间则返回 null
  */
-export function formatTweetTime(tweet: any): string | null {
-  let tweetDate: Date | null = null;
-
+export function formatTweetTime(tweet: Tweet): string | null {
   try {
-    // 尝试不同的时间字段
-    if (tweet.created_at) {
-      tweetDate = new Date(tweet.created_at);
-    } else if (tweet.createdAt) {
-      tweetDate = new Date(tweet.createdAt);
-    } else if (tweet.timestamp) {
-      tweetDate = new Date(tweet.timestamp);
-    } else if (tweet.id) {
-      // 从 Snowflake ID 提取时间作为备选
-      tweetDate = extractTimeFromSnowflake(tweet.id);
-    }
+    const tweetDate = new Date(tweet.createdAt);
 
     if (tweetDate && !isNaN(tweetDate.getTime())) {
       return tweetDate.toLocaleString("zh-CN", {

@@ -1,5 +1,5 @@
 import { Context } from "koishi";
-import { logger } from "./logger";
+import { logger } from ".";
 
 /**
  * 数据库表字段定义

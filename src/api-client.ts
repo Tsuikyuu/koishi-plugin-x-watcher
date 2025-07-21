@@ -1,5 +1,5 @@
 import { Rettiwt } from "rettiwt-api";
-import { logger } from "./logger";
+import { logger } from ".";
 
 // 创建单例 rettiwt 实例
 let rettiwt: Rettiwt | null = null;

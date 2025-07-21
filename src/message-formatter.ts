@@ -1,3 +1,4 @@
+import { Tweet } from "rettiwt-api";
 import { formatTweetTime } from "./utils";
 
 /**
@@ -5,7 +6,7 @@ import { formatTweetTime } from "./utils";
  */
 export interface TweetMessageOptions {
   /** 推文对象 */
-  tweet: any;
+  tweet: Tweet;
   /** 推特用户全名 */
   fullname: string;
   /** 推特用户名 */
